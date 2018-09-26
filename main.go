@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,9 +15,10 @@ import (
 	gbuild "github.com/gopherjs/gopherjs/build"
 )
 
-var assets = union.New(map[string]http.FileSystem{
-	"/assets": gopherjs_http.NewFS(http.Dir("assets")),
-})
+var clientDir = "client"
+var assetDir = "assets"
+
+var assets http.FileSystem
 
 func gopherjsMain() {
 
@@ -27,8 +29,8 @@ func gopherjsMain() {
 	}
 	s := gbuild.NewSession(options)
 	currentDirectory, err := os.Getwd()
-	sourceDirectory := filepath.Join(currentDirectory, "client")
-	assetsDirectory := filepath.Join(currentDirectory, "assets")
+	sourceDirectory := filepath.Join(currentDirectory, clientDir)
+	assetsDirectory := filepath.Join(currentDirectory, assetDir)
 
 	err = s.BuildDir(sourceDirectory,
 		sourceDirectory,
@@ -37,7 +39,7 @@ func gopherjsMain() {
 	fmt.Println(filepath.Join(assetsDirectory, "client.js"))
 
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("error building directory", err)
 	}
 }
 
@@ -48,10 +50,19 @@ func assetsMain() {
 		BuildTags: "!dev",
 	})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Error running vfsgen:", err)
 	}
 }
 func main() {
+
+	flag.StringVar(&clientDir, "client", "client", "Directory for client package")
+	flag.StringVar(&assetDir, "assets", "assets", "Directory for assets")
+	flag.Parse()
+
+	assets = union.New(map[string]http.FileSystem{
+		"/" + assetDir: gopherjs_http.NewFS(http.Dir(assetDir)),
+	})
+
 	gopherjsMain()
 	assetsMain()
 }
